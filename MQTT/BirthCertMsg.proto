@@ -1,0 +1,39 @@
+message BirthCertMsg {
+	
+	message EDCPosition {
+		required double latitude = 1;
+		required double longitude = 2;
+		optional double altitude = 3;
+		optional double precision = 4; // dilution of precision of the current satellite fix
+		optional double heading = 5; // heading in degrees
+		optional double speed = 6; // meters per second
+		optional int64 timestamp = 7;
+		optional int32 satellites = 8; // number satellites locked by the GPS device
+		optional int32 status = 9; // status indicator for the GPS data: 1 = no GPS response; 2 = error in response; 4 = valid
+	}
+	
+	required int64 timestamp = 1;
+	required string uptime = 2;
+	optional string display_name = 3;
+	optional string model_name = 4;
+	optional string model_id = 5;
+	optional string part_number = 6;
+	optional string serial_number = 7;
+	optional string available_processors = 8;
+	optional string total_memory = 9;
+	optional string firmware_version = 10;
+	optional string bios_version = 11;
+	optional string os = 12;
+	optional string os_version = 13;
+	optional string os_arch = 14;
+	optional string jvm_name = 15;
+	optional string jvm_version = 16;
+	optional string jvm_profile = 17;
+	optional string osgi_framework = 18;
+	optional string osgi_framework_version = 19;
+	optional string connection_interface = 20;
+	optional string connection_ip = 21;
+	optional string accept_encoding = 22;
+	optional string application_id = 23;
+	//optional EDCPosition position = 24;
+}

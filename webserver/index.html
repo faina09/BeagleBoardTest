@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>Sfera di Fuoco Demo</title>
+ 
+    <!-- jQuery and jQuery Mobile -->
+    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.3.1/jquery.mobile-1.3.1.min.css" />
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <script src="http://code.jquery.com/mobile/1.3.1/jquery.mobile-1.3.1.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="http://rawgit.com/One-com/one-color/master/one-color-all.js"></script>
+    <script src="http://faina09.it/prova/colorjoe.js"></script>
+    <link rel="stylesheet" href="http://bebraw.github.io/colorjoe/css/colorjoe.css" />
+
+    <script>
+    var joe;
+    
+    //var socket = new stub('golden');
+	var socket = io.connect();
+    // Send data through socket
+    function ledRed(value){
+      socket.emit('redPin', value);
+      setPicker();
+    }
+    function ledGreen(value){
+      socket.emit('greenPin', value);
+      setPicker();
+    }
+    function ledBlue(value){
+      socket.emit('bluePin', value);
+      setPicker();
+    }
+    function Demo(value){
+      socket.emit('demo', value);
+    }  
+    function Mqtt(value){
+      socket.emit('mqtt', value);
+    }  
+    function Power(value){
+	  socket.emit('colorL', $('#color1').val());
+	  socket.emit('colorM', $('#color2').val());
+	  socket.emit('colorH', $('#color3').val());
+	  socket.emit('colorVH', $('#color4').val());
+      socket.emit('power', value);
+    }
+    function powerMax(value){
+        socket.emit('powermax', value);
+        var tmax = 6;
+        var tv = 230;
+        var t1 = Math.round(tmax * value) / 400;
+        var t2 = Math.round(tmax * value) / 200;
+        var t3 = Math.round(tmax * value * 3) / 400;
+        var tm1 =  Math.round(t1 * 1000000 / tv);
+        var tm2 =  Math.round(t2 * 1000000 / tv);
+        var tm3 =  Math.round(t3 * 1000000 / tv);
+        $("#lbl_low").html('0-' + t1.toString() + ' kw (' + tm1 + ' mA)');
+        $("#lbl_med").html(t1.toString() + '-' + t2.toString() + ' kw (' + tm2 + ' mA)');
+        $("#lbl_hei").html(t2.toString() + '-' + t3.toString() + ' kw (' + tm3 + ' mA)');
+        $("#lbl_xhe").html(t3.toString() + '-' + tmax.toString() + ' kw');
+    }
+    // Take actions based on device orientation (works on mobile devices only)
+    if (window.DeviceOrientationEvent) {
+        // Listen for the deviceorientation event and handle the raw data
+        window.addEventListener('deviceorientation', function(eventData) {
+          // gamma is the left-to-right tilt in degrees, where right is positive
+          var tiltLR = eventData.gamma;
+          // beta is the front-to-back tilt in degrees, where front is positive
+          var tiltFB = eventData.beta;
+          // call orientation event handler
+          if (Gyro.value == 'on'){
+            deviceOrientationHandler(tiltLR, tiltFB);
+          }
+        }, false);
+    }
+    else {
+        console.log("DeviceOrientation is NOT supported");
+        }
+    
+    function deviceOrientationHandler(LeftRight, FrontBack){
+        // normalize and limit values between 0 and 100
+        LeftRight = Math.min(Math.max(Math.round(LeftRight), -100), 100);
+        FrontBack = Math.min(Math.max(Math.round(FrontBack), -100), 100);
+        //LeftRight = Math.round((LeftRight/180)*100);
+        //FrontBack = Math.round((LeftRight/180)*50);
+        
+        if (LeftRight >= 0) {
+            ledGreen(LeftRight);
+            ledRed(0);
+        } 
+        if (LeftRight <= 0) {
+            ledRed(Math.abs(LeftRight));
+            ledGreen(0);
+        }
+        if (FrontBack <= 0) {
+            ledBlue(Math.abs(FrontBack));
+        }
+        if (FrontBack > 0) {
+            ledBlue(0);
+        }
+    }
+        
+    function demoSwitch(sel){
+        if (sel.value == "on") {
+            $("#Gyro").val('off').slider('refresh').slider('disable');
+            $("#Power").val('off').slider('refresh').slider('disable');
+            $("#slider1").val('0').slider('refresh').slider('disable');
+            $("#slider2").val('0').slider('refresh').slider('disable');
+            $("#slider3").val('0').slider('refresh').slider('disable');
+            socket.emit('demo', sel.value);
+        } else if (sel.value == "off") {
+            $('#Gyro').slider('enable');
+            $('#Power').slider('enable');
+            $("#slider1").slider('enable');
+            $("#slider2").slider('enable');
+            $("#slider3").slider('enable');
+            socket.emit('demo', sel.value);
+        }
+    }
+ 
+    function gyroSwitch(sel){
+        if (sel.value == "on") {
+            $("#Demo").val('off').slider('refresh').slider('disable');
+            $("#Power").val('off').slider('refresh').slider('disable');
+            $("#slider1").val('0').slider('refresh').slider('disable');
+            $("#slider2").val('0').slider('refresh').slider('disable');
+            $("#slider3").val('0').slider('refresh').slider('disable');
+        } else if (sel.value == "off") {
+            $('#Demo').slider('enable');
+            $('#Power').slider('enable');
+            $("#slider1").slider('enable');
+            $("#slider2").slider('enable');
+            $("#slider3").slider('enable');
+        }
+    }
+    
+    function powerSwitch(sel){
+        if (sel.value == "on") {
+            $("#Demo").val('off').slider('refresh').slider('disable');
+            $("#Gyro").val('off').slider('refresh').slider('disable');
+            $("#slider1").val('0').slider('refresh').slider('disable');
+            $("#slider2").val('0').slider('refresh').slider('disable');
+            $("#slider3").val('0').slider('refresh').slider('disable');
+            Power(sel.value);
+        } else if (sel.value == "off") {
+            $('#Demo').slider('enable');
+            $('#Gyro').slider('enable');
+            $("#slider1").slider('enable');
+            $("#slider2").slider('enable');
+            $("#slider3").slider('enable');
+            socket.emit('power', sel.value);
+        }
+    }
+    
+    function mqttSwitch(sel){
+        /* l'invio mqtt è indipendente dalla funzione 'colore'! */
+        if (sel.value == "on") {
+            socket.emit('mqtt', sel.value);
+        } else if (sel.value == "off") {
+            socket.emit('mqtt', sel.value);
+        }
+    }
+
+    function powerColor() {
+        var joe = colorjoe.rgb('rgbPicker').on('change', function(c) {
+            if ($("#colorSel").val() == "color1") {
+                $('#color1').val( one.color(c.css()).hex().toUpperCase() );
+                $('#custom > .left1').css({background: c.css()});
+            }
+            if ($("#colorSel").val() == "color2") {
+                $('#color2').val( one.color(c.css()).hex().toUpperCase() );
+                $('#custom > .left2').css({background: c.css()});
+            }
+            if ($("#colorSel").val() == "color3") {
+                $('#color3').val( one.color(c.css()).hex().toUpperCase() );
+                $('#custom > .left3').css({background: c.css()});
+            }
+            if ($("#colorSel").val() == "color4") {
+                $('#color4').val( one.color(c.css()).hex().toUpperCase() );
+                $('#custom > .right').css({background: c.css()});
+            }
+            if ($("#colorSel").val() == "sliders") {
+                $("#slider1").val( Math.ceil( one.color(c.css()).red()*100 )).slider('refresh');
+                $("#slider2").val( Math.ceil(one.color(c.css()).green()*100 )).slider('refresh');
+                $("#slider3").val( Math.ceil(one.color(c.css()).blue()*100 )).slider('refresh');
+            }
+        }).update();
+        return joe;
+    }
+    
+    function setPicker(){
+        $("#colorSel").val("sliders"); //now we are working on the sliders
+        var r = $("#slider1").val();
+        var g = $("#slider2").val();
+        var b = $("#slider3").val();
+        rgba = 'rgba('+r*255/100+','+g*255/100+','+b*255/100+',0)';
+        rgb = one.color(rgba).hex();
+        joe.set (rgb);
+    }
+
+    /*
+	function defaultColor() {
+		$('#color1').farbtastic('#color1');
+		$('#color2').farbtastic('#color2');
+		$('#color3').farbtastic('#color3');
+		$('#color4').farbtastic('#color4');
+		$.farbtastic('#color1').setColor('#00FF00');
+		$.farbtastic('#color2').setColor('#0000FF');
+		$.farbtastic('#color3').setColor('#FFFF00');
+		$.farbtastic('#color4').setColor('#FF0000');
+	}
+    */
+	$(document).ready(function() {
+	    joe = powerColor();
+	    powerMax(100);
+
+        $("#Power").val('on').slider('refresh');
+        $("#Mqtt").val('off').slider('refresh');
+	    $("#Demo").val('off').slider('refresh').slider('disable');
+	    $("#Gyro").val('off').slider('refresh').slider('disable');
+	    $("#slider1").val('0').slider('refresh').slider('disable');
+	    $("#slider2").val('0').slider('refresh').slider('disable');
+	    $("#slider3").val('0').slider('refresh').slider('disable');
+	    socket.emit('power', 'on');
+    
+        $(".inputcolor").click(function() {
+	        $("#Power").val('off').slider('refresh');
+	        $('#Demo').slider('enable');
+            $('#Gyro').slider('enable');
+            $("#slider1").slider('enable');
+            $("#slider2").slider('enable');
+            $("#slider3").slider('enable');
+            socket.emit('power', 'off');
+	    });
+
+	    $("#color1").click(function() {
+	        $("#colorSel").val('color1');
+	        joe.set($("#color1").val());
+	    });
+
+	    $("#color2").click(function() {
+	        $("#colorSel").val('color2');
+	        joe.set($("#color2").val());
+	    });
+
+	    $("#color3").click(function() {
+	        $("#colorSel").val('color3');
+	        joe.set($("#color3").val());
+	    });
+
+	    $("#color4").click(function() {
+	        $("#colorSel").val('color4');
+	        joe.set($("#color4").val());
+	    });
+	});
+    </script>
+	
+	<style type='text/css'>
+	body {
+	   padding: 0px;
+	   margin: 0px;
+	   font-size: 90%;
+	   background-color: #e7e7de
+	}
+	.wrapper{
+	   margin: 20px;
+	   width: 90%;
+   	   text-shadow: none;
+	   color: white;
+	   text-align: center;
+	   background-color: #cccccc
+	}
+	.header{
+	   float: left;
+	   width: 100%;
+	   padding-top: 30px;
+	   padding-bottom: 20px;
+	   background-color: #2971ad
+	}
+	.left1{
+	   float: left;
+	   padding: 30px 0 10px 0;
+	   width: 25%;
+	   background-color: #00FF00
+	}
+	.left2{
+	   float: left;
+	   padding: 30px 0 10px 0;
+	   width: 25%;
+	   background-color: #0000FF
+	}
+	.left3{
+	   float: left;
+	   padding: 30px 0 10px 0;
+	   width: 25%;
+	   background-color: #FFFF00
+	}
+	.right{
+	   float: right;
+	   padding: 30px 0 10px 0;
+	   width: 25%;
+	   background-color: #FF0000
+	}
+	.footer{
+	   float: left;
+	   width: 100%;
+	   text-align: center;
+	   padding-top: 15px;
+	   padding-bottom: 15px;
+	   background-color: #2971ad
+	}
+	</style>
+</head>
+<body>
+<!-- Home -->
+<div data-role="page" id="page1">
+    <div data-theme="a" data-role="header">
+        <h3>
+            Sfera di fuoco - demo
+        </h3>
+    </div>
+    <div data-role="content">
+        <div data-role="fieldcontain">
+            <label for="slider1">
+                Rosso %
+            </label>
+            <input id="slider1" type="range" name="slider" value="0" min="0" max="100"
+            data-highlight="false" data-theme="b" onChange="ledRed(value);">
+        </div>
+        <div data-role="fieldcontain">
+            <label for="slider2">
+                Verde %
+            </label>
+            <input id="slider2" type="range" name="slider" value="0" min="0" max="100"
+            data-highlight="false" data-theme="b" onChange="ledGreen(value);">
+        </div>
+        <div data-role="fieldcontain">
+            <label for="slider3">
+                Blu %
+            </label>
+            <input id="slider3" type="range" name="slider" value="0" min="0" max="100"
+            data-highlight="false" data-theme="b" onChange="ledBlue(value);">
+        </div>
+        <div data-role="fieldcontain">
+            <label for="Demo">
+                Demo Mode
+            </label>
+            <select name="toggleswitch1" id="Demo" data-theme="b" data-role="slider" onchange="demoSwitch(this);">
+                <option value="off">Off</option>
+                <option value="on">On</option>
+            </select>
+        </div>
+        <div data-role="fieldcontain">
+            <label for="Gyro">
+                Giroscopio
+            </label>
+            <select name="toggleswitch2" id="Gyro" data-theme="b" data-role="slider" onchange="gyroSwitch(this);">
+                <option value="off">Off</option>
+                <option value="on">On</option>
+            </select>
+        </div>
+        <div data-role="fieldcontain">
+            <label for="Power">
+                Consumi
+            </label>
+            <select name="toggleswitch3" id="Power" data-theme="b" data-role="slider" onchange="powerSwitch(this);">
+                <option value="off">Off</option>
+                <option value="on">On</option>
+            </select>
+        </div>
+        <div data-role="fieldcontain">        
+            <label for="PowerMax">
+                Consumo limite %
+            </label>
+                <input id="PowerMax" type="range" name="slider" value="100" min="0" max="100"
+            data-highlight="false" data-theme="b" onChange="powerMax(value);">
+        </div>
+        <div data-role="fieldcontain">
+            <label for="Mqtt">
+                Mqtt (indipendente dal colore)
+            </label>
+            <select name="toggleswitch4" id="Mqtt" data-theme="b" data-role="slider" onchange="mqttSwitch(this);">
+                <option value="off">Off</option>
+                <option value="on">On</option>
+            </select>
+        </div>
+        
+        <div id="colorSel" display="none"></div>
+        <div id="rgbPicker" ></div>
+		<div class="wrapper">
+			<div class="header">
+				Scelta colori segnalazione consumo
+			</div>
+			<span id="custom">
+			<div class="left1"> 
+			    <input id="color1" class='inputcolor' name="color1" value="#00FF00" readonly>
+			</div>
+			<div class="left2"> 
+			    <input id="color2" class='inputcolor' name="color2" value="#0000FF" readonly>
+			</div>
+			<div class="left3"> 
+			    <input id="color3" class='inputcolor' name="color3" value="#FFFF00" readonly>
+			</div>
+			<div class="right"> 
+			    <input id="color4" class='inputcolor' name="color4" value="#FF0000" readonly>
+			</div> 
+			</span>
+			<div id="lbl_low" class="left1" style="color:black">
+				basso
+			</div>
+			<div id="lbl_med" class="left2" >
+				medio
+			</div>
+			<div id="lbl_hei" class="left3" style="color:black">
+				alto
+			</div>
+			<div id="lbl_xhe" class="right" >
+				molto alto
+			</div> 
+			
+			<div class="footer" id="messaggio">
+				Tarature: fondo scala = 6kw | tensione = 230V
+			</div>
+		</div>
+    </div>
+</div>
+</body>
+</html>
