@@ -5,7 +5,9 @@ var url = require('url');
 /**************  https://www.npmjs.org/package/node-protobuf **********************/
 var fs = require("fs");
 var path = require('path');
-var p = require("node-protobuf");
+var Schema = require('protobuf').Schema;
+var schema = new Schema(fs.readFileSync(path.resolve(__dirname,'EDCPayload.desc')));
+var EdcPayload = schema['EdcPayload'];
 
 var cliId = 'kelikap_test';
 var uname = "StefanoCott";
@@ -66,8 +68,13 @@ client.on('close', function(packet){
 client.on('message', function(topic, message, packet) {
       console.log(packet);
       var payload = new Buffer(packet.payload);
-      console.log(payload);
-      console.log("Received '" + ParseEdc(payload) + "' on '" + topic + "'");
+      try {
+        console.log("Received '" + EdcPayload.parse(payload) + "' on '" + topic + "'");
+      }
+      catch (e){
+        console.log(" EdcPayload decode error: " + e);
+        console.log(payload);
+      }
     });
 
 client.on('connect', function() {
@@ -76,7 +83,8 @@ client.on('connect', function() {
     var message = MsgEdcBirth();
     client.publish(topic, message);
     console.log('BithCertificate published @ ' + now() + ' topic=' + topic);
-    ParseEdc(message);
+    var aEdcPayload = EdcPayload.parse(message);
+    console.log("Message after roundtrip: " + JSON.stringify(aEdcPayload, null, 2));
     
     topic = acc_name + "/" + cliId + "/#";
     client.subscribe(topic);
@@ -87,7 +95,8 @@ client.on('connect', function() {
         message = MsgEdc();
         client.publish(topic, message);
         console.log('Message published @ ' + now() + ' topic=' + topic);
-        ParseEdc(message);
+        aEdcPayload = EdcPayload.parse(message);
+        console.log("Message after roundtrip: " + JSON.stringify(aEdcPayload, null, 2));
     }, 10000);
     /*
     setInterval(function() {
@@ -132,26 +141,22 @@ client.on('pubrec', function(packet) {
 function MsgEdc() {
     console.log("try to encode EDC...");
     try {
-        var pb = new p(fs.readFileSync(path.resolve(__dirname, "EDCPayload.desc")));
-
         var MyEdcMetric = [];
         MyEdcMetric.push({
             name: "DAC1",
-            type: "INT32",
-            int_value: getRandomArbitraryInt(1, 200)
+            type: "DOUBLE",
+            double_value: getRandomArbitraryInt(1, 200)
         });
-        //var MyEdcMetricUNO = {name: "DAC1",  type: "FLOAT",  float_value: getRandomArbitrary(1, 200) };
-        
+
 	    //var MyEdcPosition = {latitude:getRandomArbitrary(46, 46.50), longitude:getRandomArbitrary(13.6, 13.987)};
-        var MyEdcPosition = {latitude:46.03071, longitude:13.24165, speed:getRandomArbitraryInt(0,6000)};
-        
+	    var MyEdcPosition = {latitude:46.03071, longitude:13.24165, speed:getRandomArbitraryInt(0,6000)};
+
         var MyEdcPayload = {
             timestamp: new Date().getTime(),
             metric: MyEdcMetric,
             position: MyEdcPosition
         };
-        var buf = pb.serialize(MyEdcPayload, "EdcPayload");
-        return buf;
+        return EdcPayload.serialize(MyEdcPayload);;
     }
     catch (e) {
         console.log(" EdcPayload encode error: " + e);
@@ -162,10 +167,6 @@ function MsgEdc() {
 function MsgEdcBirth() {
     console.log("encode EDC Birth Cert...");
     try {
-        var schema = new p(fs.readFileSync(path.resolve(__dirname, "EDCPayload.desc")));
-        var schemas = schema.info();
-        console.log("Schema: " + schemas);
-
         var MyBirth = [];
         
         MyBirth.push({name: "display_name", type: 5, string_value: "Kelikap01"});
@@ -179,32 +180,20 @@ function MsgEdcBirth() {
         MyBirth.push({name: "os", type: "STRING", string_value: "LinuxBBB"});
         MyBirth.push({name: "connection_interface", type: "STRING", string_value: "Ethernet"});
         MyBirth.push({name: "connection_ip", type: "STRING", string_value: getIPAddress()});
-        //N46.03071° E13.24165°
+
 	    var MyEdcPosition = {latitude:46.03071, longitude:13.24165};
 	    
-        var buf = schema.serialize({
+	    var MyEdcPayload = {
             timestamp: new Date().getTime(),
             metric: MyBirth,
             position: MyEdcPosition
-        }, "EdcPayload");
-        return buf;
+        };
+        return EdcPayload.serialize(MyEdcPayload);;
     }
     catch (e) {
         console.log(" EdcPayload encode error: " + e);
     }
     return null;
-}
-
-function ParseEdc(buf) {
-    console.log("try to decode EDC...");
-    try {
-        var pb = new p(fs.readFileSync(path.resolve(__dirname, "EDCPayload.desc")));
-        var newObj = pb.parse(buf, "EdcPayload"); 
-        console.log(newObj);
-    }
-    catch (e) {
-        console.log(" invalid buffer or EdcPayload does not exist: " + e);
-    }
 }
 
 // Get server IP address on LAN

@@ -1,16 +1,25 @@
+// To compile:
+// protoc --proto_path=src/main/protobuf --java_out=src/main/java src/main/protobuf/edcpayload.proto
+//
+//package edcdatatypes;
+//option java_package = "com.eurotech.cloud.message.protobuf";
+//option java_outer_classname = "EdcPayloadProto";
+// to compile:
+// protoc EDCPayload.proto -o EDCPayload.desc
 message EdcPayload {
-    
-    enum ValueType {
-		DOUBLE = 0;
-		FLOAT = 1;
-		INT64 = 2;
-		INT32 = 3;
-		BOOL = 4;
-		STRING = 5;
-		BYTES = 6;
-	}
-		
+
 	message EdcMetric {
+
+		enum ValueType {
+			DOUBLE = 0;
+			FLOAT = 1;
+			INT64 = 2;
+			INT32 = 3;
+			BOOL = 4;
+			STRING = 5;
+			BYTES = 6;
+		}
+
 		required string name = 1;
 		required ValueType type = 2;
 		optional double double_value = 3;
@@ -26,18 +35,18 @@ message EdcPayload {
 		required double latitude = 1;
 		required double longitude = 2;
 		optional double altitude = 3;
-		optional double precision = 4; // dilution of precision of the current satellite fix
+		optional double precision = 4; // dilution of precision of the current satellite fix.
 		optional double heading = 5; // heading in degrees
 		optional double speed = 6; // meters per second
 		optional int64 timestamp = 7;
 		optional int32 satellites = 8; // number satellites locked by the GPS device
-		optional int32 status = 9; // status indicator for the GPS data: 1 = no GPS response; 2 = error in response; 4 = valid
+		optional int32 status = 9; // status indicator for the GPS data: 1 = no GPS response; 2 = error in response; 4 = valid.
 	}
-    
-    
+
 	optional int64 timestamp = 1;
 	optional EdcPosition position = 2;
 	//extensions 3 to 4999;
-	repeated EdcMetric metric = 4000; // can be zero, so optional
-	optional bytes body = 4001;
+	//repeated EdcMetric metric = 5000; // can be zero, so optional
+	optional EdcMetric metric = 3;
+	optional bytes body = 4;
 }
