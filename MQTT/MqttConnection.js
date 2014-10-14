@@ -34,7 +34,7 @@ function(err, client) {
     client.connect({
         keepalive: 1000,
         client: cliId
-    })
+    });
 });
 
 // incoming acks  var acks = ['puback', 'pubrec', 'pubcomp', 'suback', 'unsuback'];
@@ -43,7 +43,7 @@ for (var i = 0; i < events.length; i++) {
     client.on(events[i], function(packet) {
         console.log('event#' + i + 'pkt@' + events[i] + '=' + packet); //JSON.stringify(packet));
     });
-};
+}
 
 client.on('connect', function() {
     //SendBithCertificate
@@ -102,7 +102,7 @@ client.on('pubrec', function(packet) {
 /***************/
 
 function MsgEdc() {
-    console.log("try to encode EDC...")
+    console.log("try to encode EDC...");
     try {
         var pb = new p(fs.readFileSync(path.resolve(__dirname, "EDCPayload.desc")));
 
@@ -122,17 +122,18 @@ function MsgEdc() {
             timestamp: new Date().getTime(),
             metric: MyEdcMetric,
             position: MyEdcPosition
-        }
-        var buf = pb.serialize(MyEdcPayload, "EdcPayload") 
+        };
+        var buf = pb.serialize(MyEdcPayload, "EdcPayload");
+        return buf;
     }
     catch (e) {
         console.log(" EdcPayload encode error: " + e);
     }
-    return buf;
+    return null;
 }
 
 function MsgEdcBirth() {
-    console.log("encode EDC Birth Cert...")
+    console.log("encode EDC Birth Cert...");
     try {
         var schema = new p(fs.readFileSync(path.resolve(__dirname, "EDCPayload.desc")));
         var schemas = schema.info();
@@ -159,19 +160,20 @@ function MsgEdcBirth() {
             timestamp: new Date().getTime(),
             metric: MyBirth,
             position: MyEdcPosition
-        }, "EdcPayload") // you get Buffer here, send it via socket.write, etc.
+        }, "EdcPayload"); // you get Buffer here, send it via socket.write, etc.
+        return buf;
     }
     catch (e) {
         console.log(" EdcPayload encode error: " + e);
     }
-    return buf;
+    return null;
 }
 
 function ParseEdc(buf) {
-    console.log("try to decode EDC...")
+    console.log("try to decode EDC...");
     try {
         var pb = new p(fs.readFileSync(path.resolve(__dirname, "EDCPayload.desc")));
-        var newObj = pb.parse(buf, "EdcPayload") // you get plain object here, it should be exactly the same as obj
+        var newObj = pb.parse(buf, "EdcPayload"); // you get plain object here, it should be exactly the same as obj
         console.log(newObj);
     }
     catch (e) {
@@ -186,7 +188,7 @@ function TestPoints() {
     var pb = new p(desc);
 
     var points = [];
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 500; i++) {
         points.push({
             i: 1388534400000,
             j: 1388534400000
@@ -200,14 +202,15 @@ function TestPoints() {
     var deserJSON = JSON.parse(serJSON);
     var t2 = Date.now();
     console.log("Time JSON:", t2 - t1);
+    console.log(deserJSON);
 
-    var t1 = Date.now();
+    var t3 = Date.now();
     var serPB = pb.serialize({
         points: points
     }, 'Points');
     var deserPB = pb.parse(serPB, 'Points');
-    var t2 = Date.now();
-    console.log("Time PB:", t2 - t1);
+    var t4 = Date.now();
+    console.log("Time PB:", t4 - t3);
     console.log(deserPB);
 }
 
