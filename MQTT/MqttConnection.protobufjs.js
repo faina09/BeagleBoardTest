@@ -179,8 +179,8 @@ function MsgEdcBirth() {
         var EdcPayload = builder.build("EdcPayload");
         var MyEdcPayload = new EdcPayload({
             timestamp: new Date().getTime(),
-            metric:{name: "display_name",  type: "STRING", string_value: "Kelikap01"},
-            /*{name: "model_name", type: "STRING", string_value: "BeagleBoard"},
+            metric:[{name: "display_name",  type: "STRING", string_value: "Kelikap01"},
+            {name: "model_name", type: "STRING", string_value: "BeagleBoard"},
             {name: "uptime", type: "INT64", long_value: 3601020},
             {name: "model_id", type: "STRING", string_value: "BBB"},
             {name: "serial_number", type: "STRING", string_value: "BN122743"},
@@ -189,7 +189,7 @@ function MsgEdcBirth() {
             {name: "firmare_version", type: "STRING", string_value: "0.2"},
             {name: "os", type: "STRING", string_value: "LinuxBBB"},
             {name: "connection_interface", type: "STRING", string_value: "Ethernet"},
-            {name: "connection_ip", type: "STRING", string_value: getIPAddress()},*/
+            {name: "connection_ip", type: "STRING", string_value: getIPAddress()}],
             position: MyEdcPosition
         });
         var buffer = MyEdcPayload.encode();

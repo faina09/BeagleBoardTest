@@ -11,14 +11,14 @@
 //  $ protoc --decode=EdcPayload EDCPayload.proto < EDCReceived.bin
 // RUN: $ node /var/lib/cloud9/BeagleBoardTest/webserver/server.js 
 // @@@SC20141004 TODO:
-// multiple EDC metric (Birth)
+//  multiple EDC metric (Birth)
 //  save colore settato per i livelli di power e 'restore default'
 
 var b = require('bonescript');
 // http e socket
 var app = require('http').createServer(handler);
 var io = require('socket.io').listen(app);
-// file suystem
+// file system
 var fs = require('fs');
 var path = require('path');
 // serial port
@@ -95,7 +95,7 @@ var red = 0xFF0000;
 var colorL = 0x00FF00; //green:  low
 var colorM = 0x0000FF; //blue:   mediun
 var colorH = 0xFFFF00; //yellow: high
-var colorVH = 0xFF0000; //red:    very high
+var colorVH = 0xFF0000; //red:   very high
 
 var INVERTED = 0;
 var CRLF = new Buffer(2);
@@ -606,15 +606,15 @@ EDCclient.on('connect', function() {
 });
 
 EDCclient.on('message', function(topic, message, packet) {
-    console.log("* Edc message received");
+    console.log("* Edc message received @ " + now() + "on topic=" + topic );
     console.log(packet);
     var payload = new Buffer(packet.payload);
     try {
-        //console.log("Received '" + EdcPayload.parse(payload) + "' on '" + topic + "'");
+        console.log("* Received: " + MsgDecode(payload));
     }
     catch (e) {
         console.log("* EdcPayload decode error: " + e);
-        //console.log(payload);
+        console.log(payload);
     }
 });
 
@@ -634,7 +634,8 @@ function MsgEdc() {
             metric: {
                 name: "DAC1",
                 type: "INT32",
-                int_value: getRandomArbitraryInt(1, 200) //TODO: inserire il valore del DAC
+                int_value: getRandomArbitraryInt(1, 200) //@@@TODO: inserire il valore parseInt(DAC1)
+                //int_value: getRandomArbitraryInt(1, parseInt(DAC1))
             },
             position: MyEdcPosition
         });
@@ -655,17 +656,17 @@ function MsgEdcBirth() {
         var EdcPayload = builder.build("EdcPayload");
         var MyEdcPayload = new EdcPayload({
             timestamp: new Date().getTime(),
-            metric: {name:"display_name",  type: "STRING", string_value: "Kelikap01"},
-           /* metric:{name: "model_name", type: "STRING", string_value: "BeagleBoard"},
-            metric:{name: "uptime", type: "INT64", long_value: 3601020},
-            metric:{name: "model_id", type: "STRING", string_value: "BBB"},
-            metric:{name: "serial_number", type: "STRING", string_value: "BN122743"},
-            metric:{name: "available_processors", type: "STRING", string_value: "1"},
-            metric:{name: "total_memory", type: "STRING", string_value: "512MB RAM"},
-            metric:{name: "firmare_version", type: "STRING", string_value: "0.2"},
-            metric:{name: "os", type: "STRING", string_value: "LinuxBBB"},
-            metric:{name: "connection_interface", type: "STRING", string_value: "Ethernet"},
-            metric:{name: "connection_ip", type: "STRING", string_value: getIPAddress()},*/
+            metric: {name:"display_name",  type: "STRING", string_value: "Kelikap01"},/*
+            {name: "model_name", type: "STRING", string_value: "BeagleBoard"},
+            {name: "uptime", type: "INT64", long_value: 3601020},
+            {name: "model_id", type: "STRING", string_value: "BBB"},
+            {name: "serial_number", type: "STRING", string_value: "BN122743"},
+            {name: "available_processors", type: "STRING", string_value: "1"},
+            {name: "total_memory", type: "STRING", string_value: "512MB RAM"},
+            {name: "firmare_version", type: "STRING", string_value: "0.2"},
+            {name: "os", type: "STRING", string_value: "LinuxBBB"},
+            {name: "connection_interface", type: "STRING", string_value: "Ethernet"},
+            {name: "connection_ip", type: "STRING", string_value: getIPAddress()}],*/
             position: MyEdcPosition
         });
         var buffer = MyEdcPayload.encode();
