@@ -29,20 +29,28 @@ var fs = require("fs");
 var path = require('path');
 var p = require("node-protobuf");
 
-// tento con protobuf:
+// *********** tento con protobuf:
 var Schema = require('protobuf').Schema;
 // "schema" contains all message types defined in feeds.proto|desc.
 var schema = new Schema(fs.readFileSync(path.resolve(__dirname,'EDCPayload.desc')));
 // The "EdcPayload" message.
 var EdcPayload = schema['EdcPayload'];
 
+
+// *********** tento con https://github.com/dcodeIO/ProtoBuf.js
+// npm install protobufjs
+var ProtoBuf = require("protobufjs");
+var builder = ProtoBuf.loadProtoFile(path.resolve(__dirname,'EDCPayload.proto'));
+
 main();
 
 function main(){
+  /*
   var topic = "BIRTH";
   var message = MsgEdcBirth();
   //client.publish(topic, message);
   console.log('BithCertificate published @ ' + now() + ' topic=' + topic);
+  WriteFileAssistant('node-protobuf.bin',message);
   ParseEdc(message);
 
   topic = "MSG";
@@ -51,18 +59,85 @@ function main(){
   console.log('Message published @ ' + now() + ' topic=' + topic);
   ParseEdc(message);
   
-  MsgEdc_proto();
   var serialized =  MsgEdc_proto();
   // Parses a protocol message in a node buffer into a JS object
   // according to the protocol message schema.
   var aEdcPayload = EdcPayload.parse(serialized);
   console.log("Message after roundtrip: " + JSON.stringify(aEdcPayload, null, 2));
   console.log("Message decoded: " + aEdcPayload);
+  WriteFileAssistant('protobuf.bin',serialized);
+  */
+  var Edcprotojs = MsgEdc_protojs();
+  //var Edcprotojscar = MsgCar();
+  //WriteFileAssistant('protobufjs.bin',Edcprotojscar);
+  WriteFileAssistant('protobufjsEDC.bin',Edcprotojs);
 
 }
 
+function MsgCar(){
+  //https://github.com/dcodeIO/ProtoBuf.js/wiki/Builder
+  // protoc --decode=Game.Cars.Car complex.proto < protobufjs.bin
+  var ProtoBuf = require("protobufjs");
+
+  var builder = ProtoBuf.loadProtoFile(path.resolve(__dirname,"complex.proto")),
+      Game = builder.build("Game"),
+      Car = Game.Cars.Car;
+
+  // Construct with arguments list in field order:
+  var car1 = new Car("Rusty", new Car.Vendor("Iron Inc.", new Car.Vendor.Address("US")), Car.Speed.SUPERFAST);
+
+  // OR: Construct with values from an object, implicit message creation (address) and enum values as strings:
+  var car2 = new Car({
+      "model": "Rusty",
+      "vendor": {
+          "name": "Iron Inc.",
+          "address": {
+              "country": "US"
+          }
+      },
+      "speed": "SUPERFAST" // also equivalent to "speed": 2
+  });
+
+  // OR: It's also possible to mix all of this!
+  // Afterwards, just encode your message:
+  var buffer = car1.encode();
+  console.log(buffer);
+  return buffer.toBuffer();
+}
+
+function MsgEdc_protojs(){
+  var MyEdcMetric = [];
+  MyEdcMetric.push({
+      name: "DAC1",
+      type: 1,//"INT32",
+      double_value: 20 //getRandomArbitrary(1, 200)
+  });
+
+  var MyEdcPosition = {latitude:getRandomArbitrary(46, 46.50), longitude:getRandomArbitrary(13.6, 13.987), precision:4};
+
+  var MyEdcPayload = {
+      timestamp: new Date().getTime(),
+      metric: MyEdcMetric,
+      position: MyEdcPosition
+  };
+  var EdcPayload = builder.build("EdcPayload");
+  var MyEdcPayload = new EdcPayload({
+      timestamp: new Date().getTime(),
+      metric: {
+        name: "DAC1",
+        type: 1,//"INT32",
+        double_value: 20 //getRandomArbitrary(1, 200)
+      },
+      position: MyEdcPosition
+  });
+  var MyEdcPayload_1 = new EdcPayload({"timestamp":"123456"});
+  var buffer = MyEdcPayload.encode();
+
+  console.log(buffer);
+  return buffer.toBuffer();
+}
+
 function MsgEdc_proto(){
-  
   var MyEdcMetric = [];
   MyEdcMetric.push({
       name: "DAC1",
@@ -211,6 +286,16 @@ function now() {
 
 function getRandomArbitrary(min, max) {
   return Math.random() * (max - min) + min;
+}
+
+function WriteFileAssistant(filename, data) {
+  var fileName = path.resolve(__dirname, filename);
+  
+  var fd =  fs.openSync(filename, 'w');
+  var buff = new Buffer(data, 'base64');
+  fs.write(fd, buff, 0, buff.length, 0, function(err,written){
+    console.log("bytes written on " + filename + ": " + written);
+  });
 }
 
 /*

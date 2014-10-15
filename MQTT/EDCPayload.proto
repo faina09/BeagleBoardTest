@@ -6,6 +6,8 @@
 //option java_outer_classname = "EdcPayloadProto";
 // to compile:
 // protoc EDCPayload.proto -o EDCPayload.desc
+// to decode a saved binary econded file:
+// protoc --decode=EdcPayload EDCPayload.proto < protobuf.bin 
 message EdcPayload {
 
 	message EdcMetric {
