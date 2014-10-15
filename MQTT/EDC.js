@@ -71,7 +71,7 @@ function main(){
   //var Edcprotojscar = MsgCar();
   //WriteFileAssistant('protobufjs.bin',Edcprotojscar);
   WriteFileAssistant('protobufjsEDC.bin',Edcprotojs);
-
+  MsgDecode_protojs(Edcprotojs);
 }
 
 function MsgCar(){
@@ -105,16 +105,20 @@ function MsgCar(){
   return buffer.toBuffer();
 }
 
+function MsgDecode_protojs(buf) {
+    var YourMessage = builder.build("EdcPayload");
+    var myMessage = YourMessage.decode(buf);
+    console.log(myMessage);
+}
+
+
 function MsgEdc_protojs(){
   var MyEdcPosition = {latitude:getRandomArbitrary(46, 46.50), longitude:getRandomArbitrary(13.6, 13.987), precision:4};
   var EdcPayload = builder.build("EdcPayload");
   var MyEdcPayload = new EdcPayload({
       timestamp: new Date().getTime(),
-      metric: {
-        name: "DAC1",
-        type: 1,//"INT32",
-        double_value: 20 //getRandomArbitrary(1, 200)
-      },
+      metric: [{name: "DAC1", type: "INT32",  double_value: 20},
+       {name:"DAC2", type: "INT32", double_value: 30}],
       position: MyEdcPosition
   });
   var buffer = MyEdcPayload.encode();
