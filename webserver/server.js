@@ -597,7 +597,7 @@ EDCclient.on('connect', function() {
 
     //publish DAC data every 10 seconds
     setInterval(function() {
-        topic = EDCacc_name + "/" + EDCcliId + "/DAC";
+        topic = EDCacc_name + "/" + EDCcliId + "/DAC/read";
         message = MsgEdc();
         EDCclient.publish(topic, message);
         console.log('* Message published @ ' + now() + ' topic=' + topic);
