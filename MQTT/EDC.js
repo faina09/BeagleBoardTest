@@ -106,20 +106,7 @@ function MsgCar(){
 }
 
 function MsgEdc_protojs(){
-  var MyEdcMetric = [];
-  MyEdcMetric.push({
-      name: "DAC1",
-      type: 1,//"INT32",
-      double_value: 20 //getRandomArbitrary(1, 200)
-  });
-
   var MyEdcPosition = {latitude:getRandomArbitrary(46, 46.50), longitude:getRandomArbitrary(13.6, 13.987), precision:4};
-
-  var MyEdcPayload = {
-      timestamp: new Date().getTime(),
-      metric: MyEdcMetric,
-      position: MyEdcPosition
-  };
   var EdcPayload = builder.build("EdcPayload");
   var MyEdcPayload = new EdcPayload({
       timestamp: new Date().getTime(),
@@ -130,9 +117,7 @@ function MsgEdc_protojs(){
       },
       position: MyEdcPosition
   });
-  var MyEdcPayload_1 = new EdcPayload({"timestamp":"123456"});
   var buffer = MyEdcPayload.encode();
-
   console.log(buffer);
   return buffer.toBuffer();
 }
