@@ -4,18 +4,41 @@
 // npm install onecolor
 // npm install colorjoe
 // npm install mqtt
+// npm install protobufjs
+// @@@SC20141004 remember:
+//  $ echo BB-UART2 > /sys/devices/bone_capemgr.9/slots
+//  $ echo BB-UART4 > /sys/devices/bone_capemgr.9/slots
+//  $ protoc --decode=EdcPayload EDCPayload.proto < EDCReceived.bin
+// RUN: $ node /var/lib/cloud9/BeagleBoardTest/webserver/server.js 
 // @@@SC20141004 TODO:
-//  EDC
+// multiple EDC metric (Birth)
 //  save colore settato per i livelli di power e 'restore default'
 
+var b = require('bonescript');
+// http e socket
 var app = require('http').createServer(handler);
 var io = require('socket.io').listen(app);
+// file suystem
 var fs = require('fs');
 var path = require('path');
-var b = require('bonescript');
+// serial port
 var SerialPort = require("serialport").SerialPort;
+// color picker
 var onecolor = require('onecolor');
 var colorjoe = require('colorjoe');
+// mqtt
+var mqtt = require('mqtt');
+var url = require('url');
+// protocol buffers google --> https://github.com/dcodeIO/ProtoBuf.js
+var ProtoBuf = require("protobufjs");
+var builder = ProtoBuf.loadProtoFile(path.resolve(__dirname, 'EDCPayload.proto'));
+
+var EDCcliId = 'kelikap_test';
+var EDCuname = "StefanoCott";
+var EDCupass = "pwdSt3f@no123";
+var EDCacc_name = "Techsigno";
+//var EDCupass = "We!come12345";
+var EDCmqtt_url = url.parse(process.env.CLOUDMQTT_URL || 'mqtt://broker-sandbox.everyware-cloud.com:1883');
 
 var port = 8090;
 app.listen(port);
@@ -515,9 +538,7 @@ function initBT() {
 
 //**** Mqtt */
 function MqttPublish(DAC1, DAC2, DAC3) {
-    var mqtt = require('mqtt');
-    var url = require('url');
-
+    // mosquitto mqtt : connect/publish/disconnect at each group of messages published
     // Parse
     var mqtt_url = url.parse(process.env.CLOUDMQTT_URL || 'mqtt://test.mosquitto.org:1883');
     var auth = (mqtt_url.auth || ':').split(':');
@@ -539,6 +560,122 @@ function MqttPublish(DAC1, DAC2, DAC3) {
             client.end(); // Close the connection when published
         });
     });
+}
+
+//**** Protocol buffers */
+var EDCclient = mqtt.createClient(EDCmqtt_url.port, EDCmqtt_url.hostname, {
+    username: EDCuname,
+    password: EDCupass,
+    clientId: EDCcliId
+    },
+    function(err, EDCclient) {
+        console.log("* ERROR creating client");
+        if (err) {
+            //console.log(JSON.stringify(err));
+            console.log("error");
+            return process.exit(-1);
+        }
+        else {
+            console.log("* client created no errors");
+        }
+        EDCclient.connect({
+            keepalive: 1000,
+            client: EDCcliId
+        });
+    });
+
+EDCclient.on('connect', function() {
+    //SendBithCertificate
+    var topic = "$EDC/" + EDCacc_name + "/" + EDCcliId + "/MQTT/BIRTH";
+    var message = MsgEdcBirth();
+    EDCclient.publish(topic, message);
+    console.log('* BithCertificate published @ ' + now() + ' topic=' + topic);
+    MsgDecode(message);
+    //Subscribe to all messages
+    topic = EDCacc_name + "/" + EDCcliId + "/#";
+    EDCclient.subscribe(topic);
+
+    //publish DAC data every 10 seconds
+    setInterval(function() {
+        topic = EDCacc_name + "/" + EDCcliId + "/DAC";
+        message = MsgEdc();
+        EDCclient.publish(topic, message);
+        console.log('* Message published @ ' + now() + ' topic=' + topic);
+        MsgDecode(message);
+    }, 10000);
+});
+
+EDCclient.on('message', function(topic, message, packet) {
+    console.log("* Edc message received");
+    console.log(packet);
+    var payload = new Buffer(packet.payload);
+    try {
+        //console.log("Received '" + EdcPayload.parse(payload) + "' on '" + topic + "'");
+    }
+    catch (e) {
+        console.log("* EdcPayload decode error: " + e);
+        //console.log(payload);
+    }
+});
+
+function MsgDecode(buf) {
+    var YourMessage = builder.build("EdcPayload");
+    var myMessage = YourMessage.decode(buf);
+    console.log(myMessage);
+}
+
+function MsgEdc() {
+    //console.log("encode EDC Message...");
+    try {
+        var MyEdcPosition = {latitude: 46.03071, longitude: 13.24165};
+        var EdcPayload = builder.build("EdcPayload");
+        var MyEdcPayload = new EdcPayload({
+            timestamp: new Date().getTime(),
+            metric: {
+                name: "DAC1",
+                type: "INT32",
+                int_value: getRandomArbitraryInt(1, 200) //TODO: inserire il valore del DAC
+            },
+            position: MyEdcPosition
+        });
+        var buffer = MyEdcPayload.encode();
+        console.log(buffer);
+        return buffer.toBuffer();
+    }
+    catch (e) {
+        console.log("* EdcPayload encode error: " + e);
+    }
+    return null;
+}
+
+function MsgEdcBirth() {
+    //console.log("encode EDC Birth Cert...");
+    try {
+        var MyEdcPosition = {latitude: 46.03071, longitude: 13.24165};
+        var EdcPayload = builder.build("EdcPayload");
+        var MyEdcPayload = new EdcPayload({
+            timestamp: new Date().getTime(),
+            metric: {name:"display_name",  type: "STRING", string_value: "Kelikap01"},
+           /* metric:{name: "model_name", type: "STRING", string_value: "BeagleBoard"},
+            metric:{name: "uptime", type: "INT64", long_value: 3601020},
+            metric:{name: "model_id", type: "STRING", string_value: "BBB"},
+            metric:{name: "serial_number", type: "STRING", string_value: "BN122743"},
+            metric:{name: "available_processors", type: "STRING", string_value: "1"},
+            metric:{name: "total_memory", type: "STRING", string_value: "512MB RAM"},
+            metric:{name: "firmare_version", type: "STRING", string_value: "0.2"},
+            metric:{name: "os", type: "STRING", string_value: "LinuxBBB"},
+            metric:{name: "connection_interface", type: "STRING", string_value: "Ethernet"},
+            metric:{name: "connection_ip", type: "STRING", string_value: getIPAddress()},*/
+            position: MyEdcPosition
+        });
+        var buffer = MyEdcPayload.encode();
+        console.log(buffer);
+        return buffer.toBuffer();
+    }
+    catch (e) {
+        console.log("* EdcPayload encode error: " + e);
+    }
+    return null;
 }
 
 
@@ -563,4 +700,18 @@ function decimalToHex(d, padding) {
         hex = "0" + hex;
     }
     return hex;
+}
+
+function getRandomArbitraryInt(min, max) {
+    return Math.ceil(Math.random() * (max - min) + min);
+}
+
+function WriteFileAssistant(filename, data) {
+  var fileName = path.resolve(__dirname, filename);
+  
+  var fd =  fs.openSync(filename, 'w');
+  var buff = new Buffer(data, 'base64');
+  fs.write(fd, buff, 0, buff.length, 0, function(err,written){
+    console.log("bytes written on " + filename + ": " + written);
+  });
 }
